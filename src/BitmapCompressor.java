@@ -16,6 +16,8 @@
  *  1240 bits
  ******************************************************************************/
 
+import java.util.function.ObjIntConsumer;
+
 /**
  *  The {@code BitmapCompressor} class provides static methods for compressing
  *  and expanding a binary bitmap input.
@@ -32,18 +34,26 @@ public class BitmapCompressor {
      * and writes the results to standard output.
      */
     public static void compress() {
-
-        // TODO: complete compress()
-        boolean past_cur = false;
-        short count = 0;
+        boolean cur = false; // Assume sequence starts with 0
+        int count = 0;
+        // Iterate over entire sequence of bits to compress
         while (!BinaryStdIn.isEmpty()) {
-            boolean cur = BinaryStdIn.readBoolean();
-            if (past_cur != cur || count == 255) {
-                BinaryStdOut.write(count);
-                count = 0;
+            boolean bit = BinaryStdIn.readBoolean();
+            if (bit == cur) { // Part of current sequence
+                count++;
+                // Only using 8 bits to write out run length encoding
+                if (count == 255) {
+                    BinaryStdOut.write(count, 8);
+                    count = 0;
+                    cur = !cur; // Toggle between 0 and 1
+                }
+            } else { // Begin new sequence
+                BinaryStdOut.write(count,8);
+                count = 1; // Current bit is first one of new sequence
+                cur = !cur;
             }
-            count++;
         }
+        BinaryStdOut.write(count, 8);
         BinaryStdOut.close();
     }
 
@@ -52,16 +62,15 @@ public class BitmapCompressor {
      * and writes the results to standard output.
      */
     public static void expand() {
-
-        // TODO: complete expand()
-        boolean cur = false;
+        boolean cur = false; // Assume sequence starts with 0
+        // Iterate over entire sequence of bits to expand
         while (!BinaryStdIn.isEmpty()) {
-            int cur_length = BinaryStdIn.readShort();
+            // 8 bit run length encoding to write out n bits of cur
+            int cur_length = BinaryStdIn.readByte();
             for (int i = 0; i < cur_length; i++) {
-                int write_out = 1;
-                if (!cur) write_out = 0;
-                BinaryStdOut.write(write_out);
+                BinaryStdOut.write(cur); // 0 or 1
             }
+            cur = !cur; // Toggle between 0 and 1
         }
         BinaryStdOut.close();
     }
